@@ -43,7 +43,7 @@ class Peer(Base):
     )
     peer_name = sa.Column(sa.String(255), nullable=False)
     url = sa.Column(sa.String(255), nullable=False)
-    regex = sa.Column(sa.String(255), nullable=False)
+    regex = sa.Column(sa.String(255), nullable=True)
 
     @property
     def slaves_ready(self):

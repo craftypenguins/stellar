@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from psutil import pid_exists
 
 
-__version__ = '0.4.3'
+__version__ = '0.4.4'
 logger = logging.getLogger(__name__)
 
 
@@ -107,6 +107,9 @@ class Stellar(object):
         return self.db.session.query(Peer).all()
 
     def create_peer(self, peer_name, url, regex):
+        if self.get_peer(peer_name):
+            click.echo("Peer (%s) already exists." % peer_name)
+            sys.exit(1)
         peer = Peer(
             peer_name=peer_name,
             url=url,
@@ -117,10 +120,16 @@ class Stellar(object):
         self.db.session.commit()
 
     def remove_peer(self, peer):
+        if not self.get_peer(peer_name):
+            click.echo("Peer (%s) does not exist." % peer_name)
+            sys.exit(1)
         self.db.session.delete(peer)
         self.db.session.commit()
 
     def get_remote_snapshots(self, peer_name):
+        if not self.get_peer(peer_name):
+            click.echo("Peer (%s) does not exist." % peer_name)
+            sys.exit(1)
 
         peer_url = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().url
         self.init_remote_database(peer_url)
@@ -132,6 +141,9 @@ class Stellar(object):
         ).all()
 
     def get_remote_snapshot(self, peer_name, snapshot_name):
+        if not self.get_peer(peer_name):
+            click.echo("Peer (%s) does not exist." % peer_name)
+            sys.exit(1)
 
         peer_url = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().url
         self.init_remote_database(peer_url)
@@ -142,6 +154,10 @@ class Stellar(object):
         ).first()
 
     def import_remote_snapshot(self, peer_name, remote_snapshot, before_copy=None):
+        if not self.get_peer(peer_name):
+            click.echo("Peer (%s) does not exist." % peer_name)
+            sys.exit(1)
+
         if not remote_snapshot:
             click.echo("An error occured! Snapshot %s is not valid." % remote_snapshot)
             sys.exit(1)
