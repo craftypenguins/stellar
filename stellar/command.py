@@ -340,7 +340,7 @@ def init():
     if engine.dialect.name == 'postgresql':
         raw_url = raw_url + 'template1'
 
-    with open('stellar.yaml', 'w') as project_file:
+    with open('~/.stellar.yaml', 'w') as project_file:
         project_file.write(
             """
 project_name: '%(name)s'
@@ -356,7 +356,7 @@ stellar_url: '%(url)sstellar_data'
             }
         )
 
-    click.echo("Wrote stellar.yaml")
+    click.echo("Wrote ~/.stellar.yaml")
     click.echo('')
     if engine.dialect.name == 'mysql':
         click.echo("Warning: MySQL support is still in beta.")
@@ -367,11 +367,11 @@ def main():
     try:
         stellar()
     except MissingConfig:
-        click.echo("You don't have stellar.yaml configuration yet.")
+        click.echo("You don't have ~/.stellar.yaml configuration yet.")
         click.echo("Initialize it by running: stellar init")
         sys.exit(1)
     except InvalidConfig as e:
-        click.echo("Your stellar.yaml configuration is wrong: %s" % e.message)
+        click.echo("Your ~/.stellar.yaml configuration is wrong: %s" % e.message)
         sys.exit(1)
     except ImportError as e:
         libraries = {
