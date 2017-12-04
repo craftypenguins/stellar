@@ -99,9 +99,15 @@ class Stellar(object):
         self.db.session.commit()
 
     def get_peer(self, peer_name):
-        return self.db.session.query(Peer).filter(
-            Peer.peer_name == peer_name,
-        ).first()
+        try:
+            peer = self.db.session.query(Peer).filter(
+                Peer.peer_name == peer_name,
+                ).first()
+        except:
+            click.echo('Fetching peer "%s" failed.' % name)
+            exit(1)
+        return peer
+
 
     def get_peers(self):
         return self.db.session.query(Peer).all()

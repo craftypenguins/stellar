@@ -98,8 +98,10 @@ def peers():
 def peer(name):
     """Returns a single of peer"""
     peer = get_app().get_peer(name)
-
-    click.echo('%s: %s (%s)' % (peer.peer_name, peer.url, peer.regex))
+    if peer:
+        click.echo('%s: %s (%s)' % (peer.peer_name, peer.url, peer.regex))
+    else:
+        click.echo('Peer (%s) not found.' % name)
 
 @stellar.command()
 @click.argument('name', required=True)
@@ -123,7 +125,7 @@ def peer_remove(name):
         sys.exit(1)
 
     app.remove_peer(peer)
-    click.echo('Peer "%s" removed.' % (name))
+    click.echo('Peer (%s) removed.' % (name))
 
 
 @stellar.command()
