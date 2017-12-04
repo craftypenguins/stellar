@@ -18,19 +18,19 @@ with open("README.md") as readme:
     long_description = readme.read()
 
 setup(
-    name='stellar',
+    name='stellar-p2p',
     description=(
-        'stellar is a tool for creating and restoring database snapshots'
+        'stellar-p2p is a modified version of stellar, a tool for creating and restoring database snapshots'
     ),
     long_description=long_description,
     version=VERSION,
-    url='https://github.com/fastmonkeys/stellar',
+    url='https://github.com/craftypenguins/stellar-p2p',
     license='BSD',
-    author=u'Teemu Kokkonen, Pekka Pöyry',
-    author_email='teemu@fastmonkeys.com, pekka@fastmonkeys.com',
+    author=u'Rob Hartzenberg'
+    author_email='rob@hartzenberg.net',
     packages=find_packages('.', exclude=['examples*', 'test*']),
     entry_points={
-        'console_scripts': [ 'stellar = stellar.command:main' ],
+        'console_scripts': [ 'stellar-p2p = stellar.command:main' ],
     },
     zip_safe=False,
     include_package_data=True,
@@ -55,5 +55,6 @@ setup(
         'click>=3.1',
         'SQLAlchemy-Utils>=0.26.11',
         'psutil>=2.1.1',
+	'psycopg2>=2.7.3',
     ]
 )

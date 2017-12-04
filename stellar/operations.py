@@ -178,12 +178,26 @@ def import_database(raw_conn, remote_url, from_database, local_url, to_database,
         'hostname': urlparse(remote_url).hostname,
         'port': urlparse(remote_url).port
         }
+    if not remote['username']:
+            click.echo("Username missing from peer URL.")
+            sys.exit(1)
+    if not remote['password']:
+            click.echo("Password missing from peer URL.")
+            sys.exit(1)
+
     local = {
         'username': urlparse(local_url).username,
         'password': urlparse(local_url).password,
         'hostname': urlparse(local_url).hostname,
         'port': urlparse(local_url).port,
         }
+    if not local['username']:
+            click.echo("Username missing from local URL.")
+            sys.exit(1)
+    if not local['password']:
+            click.echo("Password missing from local URL.")
+            sys.exit(1)
+
     if raw_conn.engine.dialect.name == 'postgresql':
         tmp = get_temp()
         click.echo("Dumping from database %s to file %s." % (from_database, tmp))

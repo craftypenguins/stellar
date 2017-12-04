@@ -2,7 +2,7 @@ import os
 import logging
 import yaml
 from schema import Use, Schema, SchemaError, Optional
-
+from os.path import expanduser
 
 class InvalidConfig(Exception):
     pass
@@ -27,42 +27,42 @@ schema = Schema({
 
 
 def get_config_path():
-    current_directory = os.getcwd()
+    home_directory = expanduser("~/")
     while True:
         try:
             with open(
-                os.path.join(current_directory, 'stellar.yaml'),
+                os.path.join(home_directory, '.stellar.yaml'),
                 'rb'
             ) as fp:
-                return os.path.join(current_directory, 'stellar.yaml')
+                return os.path.join(home_directory, '.stellar.yaml')
         except IOError:
             pass
 
-        current_directory = os.path.abspath(
-            os.path.join(current_directory, '..')
+        home_directory = os.path.abspath(
+            os.path.join(home_directory, '..')
         )
-        if current_directory == '/':
+        if home_directory == '/':
             return None
 
 
 def load_config():
     config = {}
-    current_directory = os.getcwd()
+    home_directory = expanduser("~/")
     while True:
         try:
             with open(
-                os.path.join(current_directory, 'stellar.yaml'),
+                os.path.join(home_directory, '.stellar.yaml'),
                 'rb'
             ) as fp:
                 config = yaml.safe_load(fp)
                 break
         except IOError:
             pass
-        current_directory = os.path.abspath(
-            os.path.join(current_directory, '..')
+        home_directory = os.path.abspath(
+            os.path.join(home_directory, '..')
         )
 
-        if current_directory == '/':
+        if home_directory == '/':
             break
 
     if not config:
