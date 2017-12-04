@@ -34,6 +34,25 @@ class Snapshot(Base):
             self.snapshot_name
         )
 
+class Peer(Base):
+    __tablename__ = 'peer'
+    id = sa.Column(
+        sa.Integer,
+        sa.Sequence('peer_id_seq'),
+        primary_key=True
+    )
+    peer_name = sa.Column(sa.String(255), nullable=False)
+    url = sa.Column(sa.String(255), nullable=False)
+    regex = sa.Column(sa.String(255), nullable=False)
+
+    @property
+    def slaves_ready(self):
+        return self.worker_pid is None
+
+    def __repr__(self):
+        return "<Peer(peer_name=%r)>" % (
+            self.peer_name
+        )
 
 class Table(Base):
     __tablename__ = 'table'

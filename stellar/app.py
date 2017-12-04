@@ -5,7 +5,7 @@ import click
 from functools import partial
 
 from .config import load_config
-from .models import Snapshot, Table, Base
+from .models import Snapshot, Peer, Table, Base
 from .operations import (
     copy_database,
     create_database,
@@ -14,6 +14,7 @@ from .operations import (
     rename_database,
     terminate_database_connections,
     list_of_databases,
+    import_database
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -36,7 +37,7 @@ class Operations(object):
         self.rename_database = partial(rename_database, raw_connection)
         self.remove_database = partial(remove_database, raw_connection)
         self.list_of_databases = partial(list_of_databases, raw_connection)
-
+        self.import_database = partial(import_database, raw_connection)
 
 class Stellar(object):
     def __init__(self):
@@ -67,6 +68,25 @@ class Stellar(object):
 
         # logger.getLogger('sqlalchemy.engine').setLevel(logger.WARN)
 
+
+    def init_remote_database(self, peer_url):
+        self.remote_raw_db = create_engine(peer_url, echo=False)
+        self.remote_raw_conn = self.remote_raw_db.connect()
+        self.remote_operations = Operations(self.remote_raw_conn, self.config)
+
+        try:
+            self.remote_raw_conn.connection.set_isolation_level(0)
+        except AttributeError:
+            logger.info('Could not set isolation level to 0 on remote peer')
+
+        self.remote_db = create_engine(peer_url, echo=False)
+        self.remote_db.session = sessionmaker(bind=self.remote_db)()
+        self.remote_raw_db.session = sessionmaker(bind=self.remote_raw_db)()
+        tables_missing = self.create_stellar_database()
+
+        self.create_stellar_tables()
+
+
     def create_stellar_database(self):
         if not self.operations.database_exists('stellar_data'):
             self.operations.create_database('stellar_data')
@@ -77,6 +97,110 @@ class Stellar(object):
     def create_stellar_tables(self):
         Base.metadata.create_all(self.db)
         self.db.session.commit()
+
+    def get_peer(self, peer_name):
+        return self.db.session.query(Peer).filter(
+            Peer.peer_name == peer_name,
+        ).first()
+
+    def get_peers(self):
+        return self.db.session.query(Peer).all()
+
+    def create_peer(self, peer_name, url, regex):
+        peer = Peer(
+            peer_name=peer_name,
+            url=url,
+            regex=regex
+        )
+        self.db.session.add(peer)
+        self.db.session.flush()
+        self.db.session.commit()
+
+    def remove_peer(self, peer):
+        self.db.session.delete(peer)
+        self.db.session.commit()
+
+    def get_remote_snapshots(self, peer_name):
+
+        peer_url = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().url
+        self.init_remote_database(peer_url)
+
+        return self.remote_db.session.query(Snapshot).filter(
+            Snapshot.project_name == self.config['project_name']
+        ).order_by(
+            Snapshot.created_at.desc()
+        ).all()
+
+    def get_remote_snapshot(self, peer_name, snapshot_name):
+
+        peer_url = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().url
+        self.init_remote_database(peer_url)
+
+        return self.remote_db.session.query(Snapshot).filter(
+            Snapshot.snapshot_name == snapshot_name,
+            Snapshot.project_name == self.config['project_name']
+        ).first()
+
+    def import_remote_snapshot(self, peer_name, remote_snapshot, before_copy=None):
+        if not remote_snapshot:
+            click.echo("An error occured! Snapshot %s is not valid." % remote_snapshot)
+            sys.exit(1)
+
+        remote_url = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().url
+        sed_regex = self.db.session.query(Peer).filter(Peer.peer_name == peer_name,).first().regex
+        local_url = self.config['url']
+        snapshot = Snapshot(
+            snapshot_name = remote_snapshot.snapshot_name,
+            project_name = remote_snapshot.project_name,
+            hash = remote_snapshot.hash,
+            created_at = remote_snapshot.created_at
+        )
+
+        click.echo("Importing snapshot %s" % remote_snapshot.snapshot_name)
+        for table in remote_snapshot.tables:
+            if not self.remote_operations.database_exists(
+                table.get_table_name('slave')
+            ):
+                click.echo(
+                    "Database %s does not exist."
+                    % table.get_table_name('slave')
+                )
+                sys.exit(1)
+            try:
+                self.operations.import_database(
+                    remote_url,
+                    table.get_table_name('slave'),
+                    local_url,
+                    table.get_table_name('slave'),
+                    sed_regex
+                    )
+            except ProgrammingError:
+                logger.warn('Database %s does not exist.' % table.get_table_name('slave'))
+           
+            if not self.operations.database_exists(
+                table.get_table_name('slave')
+            ):
+                click.echo(
+                    "Database import failed for %s."
+                    % table.get_table_name('slave')
+                )
+                sys.exit(1)
+
+            if self.operations.database_exists(
+                table.get_table_name('master')
+            ):
+                self.operations.remove_database(
+                    table.get_table_name('master')
+                )
+            self.operations.rename_database(
+                table.get_table_name('slave'),
+                table.get_table_name('master')
+            )     
+
+        self.db.session.add(snapshot)
+        self.db.session.commit()
+        self.inline_slave_copy(snapshot)
+        click.echo("Done.")
 
     def get_snapshot(self, snapshot_name):
         return self.db.session.query(Snapshot).filter(

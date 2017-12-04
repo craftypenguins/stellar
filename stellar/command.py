@@ -83,6 +83,95 @@ def list():
         for s in snapshots
     ))
 
+@stellar.command()
+def peers():
+    """Returns a list of peers"""
+    peers = get_app().get_peers()
+
+    click.echo('\n'.join(
+        '%s' % (p.peer_name)
+        for p in peers
+    ))
+
+@stellar.command()
+@click.argument('name', required=True)
+def peer(name):
+    """Returns a single of peer"""
+    peer = get_app().get_peer(name)
+
+    click.echo('%s: %s (%s)' % (peer.peer_name, peer.url, peer.regex))
+
+@stellar.command()
+@click.argument('name', required=True)
+@click.argument('url', required=True)
+@click.argument('regex', required=False)
+def peer_create(name, url, regex=''):
+    """Creates a new peer"""
+    peer = get_app().create_peer(name, url, regex)
+
+    click.echo('Peer "%s": "%s" "%s" created.' % (name, url, regex))
+
+@stellar.command()
+@click.argument('name', required=True)
+def peer_remove(name):
+    """Removes a peer"""
+    app = get_app()
+
+    peer = app.get_peer(name)
+    if not peer:
+        click.echo("Couldn't find snapshot %s" % name)
+        sys.exit(1)
+
+    app.remove_peer(peer)
+    click.echo('Peer "%s" removed.' % (name))
+
+
+@stellar.command()
+@click.argument('peer', required=True)
+def remote_list(peer):
+    """Returns a list of snapshots from a remote peer"""
+    snapshots = get_app().get_remote_snapshots(peer)
+
+    click.echo('\n'.join(
+        '%s (peer: %s): %s [db: %s / %s]' % (
+            s.snapshot_name,
+            peer,
+            humanize.naturaltime(datetime.utcnow() - s.created_at),
+            ' '.join(t.get_table_name('master') for t in s.tables),
+            ' '.join(t.get_table_name('slave') for t in s.tables),
+
+        )
+        for s in snapshots
+    ))
+
+@stellar.command()
+@click.argument('peer', required=True)
+@click.argument('snapshot_name', required=True)
+def remote_get(peer, snapshot):
+    """Returns a single snapshot from a remote peer"""
+    snapshot = get_app().get_remote_snapshot(peer, snapshot)
+
+    click.echo(
+        '%s(%s): %s' % (
+            snapshot.snapshot_name,
+            peer,
+            humanize.naturaltime(datetime.utcnow() - snapshot.created_at)
+        )
+    )
+    click.echo('%s' % snapshot.hash)
+
+@stellar.command()
+@click.argument('peer', required=True)
+@click.argument('snapshot', required=True)
+def remote_import(peer, snapshot):
+    """Imports a single snapshot from a remote peer"""
+    app = get_app()
+    local_snapshot = app.get_snapshot(snapshot)
+    if local_snapshot:
+        click.echo("Snapshot name exists locally.")
+        sys.exit(1)
+    remote_snapshot = app.get_remote_snapshot(peer, snapshot)
+    result = app.import_remote_snapshot(peer, remote_snapshot)
 
 @stellar.command()
 @click.argument('name', required=False)

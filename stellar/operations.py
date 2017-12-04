@@ -1,6 +1,13 @@
+import click
 import logging
-
 import sqlalchemy_utils
+from .cmd import (
+    get_temp,
+    remove_temp,
+    dump_database,
+    restore_database,
+    apply_regex)
+from urlparse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
 
@@ -163,3 +170,58 @@ def list_of_databases(raw_conn):
     else:
         raise NotSupportedDatabase()
 
+
+def import_database(raw_conn, remote_url, from_database, local_url, to_database, regex=None):
+    remote = {
+        'username': urlparse(remote_url).username,
+        'password': urlparse(remote_url).password,
+        'hostname': urlparse(remote_url).hostname,
+        'port': urlparse(remote_url).port
+        }
+    local = {
+        'username': urlparse(local_url).username,
+        'password': urlparse(local_url).password,
+        'hostname': urlparse(local_url).hostname,
+        'port': urlparse(local_url).port,
+        }
+    if raw_conn.engine.dialect.name == 'postgresql':
+        tmp = get_temp()
+        click.echo("Dumping from database %s to file %s." % (from_database, tmp))
+        stdout,stderr = dump_database(
+            remote['hostname'],
+            remote['port'],
+            from_database,
+            remote['username'],
+            remote['password'],
+            tmp)
+        # if stdout:
+        #     click.echo('%s' % stdout)
+        if stderr:
+            click.echo('%s' % stderr)
+
+        if regex:
+            click.echo("Running regex on file %s." % tmp)
+            stdout, stderr = apply_regex(tmp, regex)
+            if stderr:
+                click.echo('%s' % stderr)
+            if stdout:
+                click.echo('%s' % stdout)
+
+        click.echo("Restoring to database %s from file %s." % (to_database, tmp))    
+        sqlalchemy_utils.functions.create_database(
+            get_engine_url(raw_conn, to_database))    
+        stdout,stderr = restore_database(
+            local['hostname'],
+            local['port'],
+            to_database,
+            local['username'],
+            local['password'],
+            tmp)
+        # if stdout:
+        #     click.echo('%s' % stdout)
+        if stderr:
+            click.echo('%s' % stderr)
+        remove_temp(tmp)
+        click.echo("Temp file %s removed." % tmp)
+    else:
+        raise NotSupportedDatabase()                
