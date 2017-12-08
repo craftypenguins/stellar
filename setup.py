@@ -26,7 +26,7 @@ setup(
     version=VERSION,
     url='https://github.com/craftypenguins/stellar-p2p',
     license='BSD',
-    author=u'Rob Hartzenberg'
+    author=u'Rob Hartzenberg',
     author_email='rob@hartzenberg.net',
     packages=find_packages('.', exclude=['examples*', 'test*']),
     entry_points={
