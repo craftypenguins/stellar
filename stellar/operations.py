@@ -7,7 +7,8 @@ from .cmd import (
     dump_database,
     restore_database,
     apply_regex)
-from urlparse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
+
 
 logger = logging.getLogger(__name__)
 

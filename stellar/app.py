@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from psutil import pid_exists
 
 
-__version__ = '0.4.4'
+__version__ = '0.4.4b'
 logger = logging.getLogger(__name__)
 
 
@@ -126,8 +126,8 @@ class Stellar(object):
         self.db.session.commit()
 
     def remove_peer(self, peer):
-        if not self.get_peer(peer_name):
-            click.echo("Peer (%s) does not exist." % peer_name)
+        if not self.get_peer(peer.peer_name):
+            click.echo("Peer (%s) does not exist." % peer.peer_name)
             sys.exit(1)
         self.db.session.delete(peer)
         self.db.session.commit()
