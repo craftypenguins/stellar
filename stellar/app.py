@@ -126,8 +126,8 @@ class Stellar(object):
         self.db.session.commit()
 
     def remove_peer(self, peer):
-        if not self.get_peer(peer_name):
-            click.echo("Peer (%s) does not exist." % peer_name)
+        if not self.get_peer(peer.peer_name):
+            click.echo("Peer (%s) does not exist." % peer.peer_name)
             sys.exit(1)
         self.db.session.delete(peer)
         self.db.session.commit()
