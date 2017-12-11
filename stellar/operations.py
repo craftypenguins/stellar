@@ -7,8 +7,11 @@ from .cmd import (
     dump_database,
     restore_database,
     apply_regex)
-from urllib.parse import urlparse, parse_qs
 
+if __version__ 2.7:
+    from urlparse import urlparse, parse_qs
+else:
+    from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
 
