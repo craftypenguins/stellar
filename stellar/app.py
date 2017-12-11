@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from psutil import pid_exists
 
 
-__version__ = '0.4.5'
+__version__ = '0.4.5.1'
 logger = logging.getLogger(__name__)
 
 
