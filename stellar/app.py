@@ -177,9 +177,15 @@ class Stellar(object):
             hash = remote_snapshot.hash,
             created_at = remote_snapshot.created_at
         )
+        self.db.session.add(snapshot)
+        self.db.session.flush()
 
         click.echo("Importing snapshot %s" % remote_snapshot.snapshot_name)
-        for table in remote_snapshot.tables:
+        for table_name in self.config['tracked_databases']:
+            table = Table(
+                table_name=table_name,
+                snapshot=snapshot
+            )
             if not self.remote_operations.database_exists(
                 table.get_table_name('slave')
             ):
@@ -217,9 +223,8 @@ class Stellar(object):
             self.operations.rename_database(
                 table.get_table_name('slave'),
                 table.get_table_name('master')
-            )     
-
-        self.db.session.add(snapshot)
+            )
+            self.db.session.add(table)
         self.db.session.commit()
         self.inline_slave_copy(snapshot)
         click.echo("Done.")
